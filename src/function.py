@@ -1,8 +1,6 @@
 import requests
 import psycopg2
 
-# Список идентификаторов работодателей Яндекс, МТС, СБЕР, Tinkoff, Аэрофлот, Озон, Магнит, РЖД, Альфа-банк, Пятерочка
-employer_ids = [1740, 3776, 3529, 78638, 1373, 2180, 49357, 23427, 80, 1942330]
 
 def gets_jobs(employer_ids):
     """Делает запрос по API hh.ru,
@@ -29,6 +27,11 @@ def gets_jobs(employer_ids):
     # Создание курсора
     cursor = conn.cursor()
 
+    # Удаление старых вакансий
+    cursor.execute("""
+            TRUNCATE TABLE vacancies RESTART IDENTITY
+        """)
+
     for employer_id in employer_ids:
         params['employer_id'] = employer_id
 
@@ -39,11 +42,6 @@ def gets_jobs(employer_ids):
         if response.status_code == 200:
             # Получение данных в формате JSON
             data = response.json()
-
-            # Удаление существующих вакансий для работодателя
-            cursor.execute("""
-                            DELETE FROM vacancies WHERE company_id = %s
-                        """, (employer_id,))
 
             for vac in data['items']:
                 company = vac['employer']['name']
@@ -74,4 +72,3 @@ def gets_jobs(employer_ids):
     conn.commit()
     conn.close()
 
-gets_jobs(employer_ids)
